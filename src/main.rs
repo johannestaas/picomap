@@ -92,7 +92,7 @@ async fn wifi_join_with_retries<'a, IFACE: ssd1306::prelude::WriteOnlyDataComman
             Timer::after_millis(*delay_ms).await;
 
             if attempt == delays.len() - 1 {
-                Text::new("final wifi failure", Point::new(0, 40), style)
+                Text::new("final wifi failure", Point::new(0, 50), style)
                     .draw(display)
                     .unwrap();
                 display.flush().unwrap();
