@@ -9,11 +9,11 @@
 //! new memory settings.
 
 use std::env;
-use std::process::Command;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
 
 fn download_proprietary_firmware() {
     let status = Command::new("bash")

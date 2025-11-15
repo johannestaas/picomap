@@ -1,5 +1,5 @@
-#![cfg_attr(not(test), no_std)]
-#![cfg_attr(not(test), no_main)]
+#![no_std]
+#![no_main]
 
 use core::fmt::Write;
 use cyw43::Control;
@@ -106,8 +106,8 @@ async fn main(spawner: Spawner) {
 
     control.init(clm).await;
 
-    // blink 30 times in 3 seconds (100ms)
-    blink(&mut control, 30, 100).await;
+    // blink 5 times in 0.5 seconds (100ms) just to show it started
+    blink(&mut control, 5, 100).await;
 
     let config = Config::dhcpv4(DhcpConfig::default());
 
@@ -138,10 +138,30 @@ async fn main(spawner: Spawner) {
         .unwrap();
     display.flush().unwrap();
 
-    control
+    // blink 3 times in 1 second (333ms)
+    blink(&mut control, 3, 333).await;
+
+    if let Err(e) = control
         .join(SSID, cyw43::JoinOptions::new(PASSWORD.as_bytes()))
         .await
-        .expect("failed to join wifi");
+    {
+        let mut msg: String<64> = String::new();
+        write!(&mut msg, "{:?}", e).unwrap();
+
+        Text::new(&msg, Point::new(0, 40), style)
+            .draw(&mut display)
+            .unwrap();
+        display.flush().unwrap();
+
+        // Pause for 5 sec so you can read the error message...
+        embassy_time::Timer::after_millis(5000).await;
+
+        panic!("wifi join failed: {:?}", e);
+    }
+
+    // Otherwise, success!
+    // blink 10 times in 1 second (100ms)
+    blink(&mut control, 10, 100).await;
     info!("wifi connected!");
 
     Text::new("Connected!", Point::new(0, 30), style)
@@ -165,6 +185,12 @@ async fn main(spawner: Spawner) {
     }
 }
 
+/*
+at top:
+#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(test), no_main)]
+
+then:
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,3 +202,4 @@ mod tests {
         // can extract defmt over RTT and drive an embedded unit test environment.
     }
 }
+*/

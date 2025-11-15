@@ -14,8 +14,8 @@ DEFMT_LOG = "debug"
 WIFISSID = "FIX-WIFISSID"
 WIFIPASS = "FIX-WIFIPASS"
 
-[unstable]
-features = ["edition2021"]
+#[unstable]
+# features = ["edition2021"]
 
-[target.'cfg(all())']
-rustflags = ["--edition=2021"]
+# [target.'cfg(all())']
+# rustflags = ["--edition=2021"]
