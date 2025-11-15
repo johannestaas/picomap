@@ -88,3 +88,9 @@ Make sure it's a 2.4GHz Wifi network and not 6 GHz! Pretty sure the Pico W can't
 
 Also, you'll want to set up SWD debugging for development.
 You'll likely need a RPi probe for this and need to connect to the 3-pin JST-SH header.
+
+If you see this:
+
+    Error: "Unable to find mounted pico"
+
+Unplug it, hold BOOTSEL, then plug it back in.

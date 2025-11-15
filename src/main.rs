@@ -2,6 +2,7 @@
 #![cfg_attr(not(test), no_main)]
 
 use core::fmt::Write;
+use cyw43::Control;
 use cyw43_pio::{DEFAULT_CLOCK_DIVIDER, PioSpi};
 use defmt::info;
 use embassy_executor::Spawner;
@@ -42,6 +43,19 @@ async fn cyw43_task(
 #[embassy_executor::task]
 async fn network_task(runner: &'static mut Runner<'static, cyw43::NetDriver<'static>>) -> ! {
     runner.run().await
+}
+
+async fn blink(control: &mut Control<'_>, num_blinks: usize, delay_ms: u64) {
+    let delay = Duration::from_millis(delay_ms);
+    for _ in 1..num_blinks {
+        // info!("led on!");
+        control.gpio_set(0, true).await;
+        Timer::after(delay).await;
+
+        //info!("led off!");
+        control.gpio_set(0, false).await;
+        Timer::after(delay).await;
+    }
 }
 
 #[embassy_executor::main]
@@ -91,6 +105,9 @@ async fn main(spawner: Spawner) {
     spawner.spawn(cyw43_task(runner)).unwrap();
 
     control.init(clm).await;
+
+    // blink 30 times in 3 seconds (100ms)
+    blink(&mut control, 30, 100).await;
 
     let config = Config::dhcpv4(DhcpConfig::default());
 
