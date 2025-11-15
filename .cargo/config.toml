@@ -1,0 +1,15 @@
+# [target.'cfg(all(target_arch = "arm", target_os = "none"))']
+# runner = "probe-rs run --chip RP2040"
+[target.thumbv6m-none-eabi]
+# Can probably go back to this since build.rs does the env magic
+# runner = "elf2uf2-rs -d"
+runner = "./flash.sh"
+
+[build]
+default-target = "thumbv6m-none-eabi"
+target = "thumbv6m-none-eabi"        # Cortex-M0 and Cortex-M0+
+
+[env]
+DEFMT_LOG = "debug"
+WIFISSID = "FIX-WIFISSID"
+WIFIPASS = "FIX-WIFIPASS"

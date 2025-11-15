@@ -1,0 +1,5 @@
+/target
+*.uf2
+cyw43*
+*.env
+/cyw43-firmware
