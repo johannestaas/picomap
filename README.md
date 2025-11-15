@@ -38,7 +38,6 @@ Those are built into the firmware image at build time like this:
 Eventually I'll allow post-build configuration, but for now, just know that your UF2 is built with and includes
 your wifi creds.
 
-
 Wiring
 ------
 
@@ -48,3 +47,36 @@ SDA -> GP4
 SCL -> GP5
 GND -> GND
 VCC -> +3V3
+
+Flashing Your Pico
+------------------
+
+Run `cargo build --release` to build the release binary. It should produce an ELF file.
+The "runner" will actually run elf2uf2-rs and deploy for you! Assuming you have configured and wired everything
+correctly, do this:
+
+1. Unplug your pico from power
+2. Hold down the BOOTSEL button on the board
+3. While holding down BOOTSEL, plug the PC USB back in.
+4. You should see some new USB drive pop up "RPI-RP2"
+5. Now run: `cargo run --release`
+
+You should see something like this:
+
+    warning: unused config key `build.default-target` in `/home/$USER/picomap/.cargo/config.toml`
+       Compiling picomap v0.1.0 (/home/$USER/picomap)
+        Finished `release` profile [optimized] target(s) in 0.64s
+         Running `/home/$USER/picomap/./flash.sh target/thumbv6m-none-eabi/release/picomap`
+    Flashing with SSID: "Your SSID Here"
+    Found pico uf2 disk /media/$USER/RPI-RP2
+    Transfering program to pico
+    851.50 KB / 851.50 KB [=========================================================================] 100.00 % 158.83 KB/s
+
+The Pico W should restart automatically then display this on the OLED:
+
+    SSID: "Your Configured SSID here"
+    Connecting...
+
+Eventually it should show that it connected and blink the on-board LED.
+Otherwise, might have trouble connecting... or I'd check your LAN connected devices and see if
+it just isn't displaying it connected.
