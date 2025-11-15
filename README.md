@@ -80,3 +80,11 @@ The Pico W should restart automatically then display this on the OLED:
 Eventually it should show that it connected and blink the on-board LED.
 Otherwise, might have trouble connecting... or I'd check your LAN connected devices and see if
 it just isn't displaying it connected.
+
+Troubleshooting
+---------------
+
+Make sure it's a 2.4GHz Wifi network and not 6 GHz! Pretty sure the Pico W can't connect to 6 GHz.
+
+Also, you'll want to set up SWD debugging for development.
+You'll likely need a RPi probe for this and need to connect to the 3-pin JST-SH header.
