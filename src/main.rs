@@ -22,6 +22,7 @@ use embedded_graphics::{
 };
 use heapless::String;
 use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
+use ssd1306::mode::BufferedGraphicsMode;
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -58,6 +59,51 @@ async fn blink(control: &mut Control<'_>, num_blinks: usize, delay_ms: u64) {
     }
 }
 
+async fn wifi_join_with_retries<'a, IFACE: ssd1306::prelude::WriteOnlyDataCommand>(
+    control: &mut cyw43::Control<'_>,
+    ssid: &str,
+    password: &str,
+    display: &mut Ssd1306<IFACE, DisplaySize128x64, BufferedGraphicsMode<DisplaySize128x64>>,
+    style: MonoTextStyle<'a, BinaryColor>,
+) {
+    use core::fmt::Write;
+    use embassy_time::Timer;
+
+    // Failure backoff schedule (ms)
+    let delays = [1000u64, 2000, 10_000, 30_000, 30_000];
+
+    for (attempt, delay_ms) in delays.iter().enumerate() {
+        let res = control
+            .join(ssid, cyw43::JoinOptions::new(password.as_bytes()))
+            .await;
+
+        if let Err(e) = res {
+            let mut msg: String<64> = String::new();
+            display.clear(BinaryColor::Off).unwrap();
+            display.flush().unwrap();
+            write!(&mut msg, "E{}: {:?}", attempt + 1, e).unwrap();
+
+            Text::new(&msg, Point::new(0, 40), style)
+                .draw(display)
+                .unwrap();
+            display.flush().unwrap();
+
+            // Retry after these millsec...
+            Timer::after_millis(*delay_ms).await;
+
+            if attempt == delays.len() - 1 {
+                Text::new("final wifi failure", Point::new(0, 40), style)
+                    .draw(display)
+                    .unwrap();
+                display.flush().unwrap();
+                panic!("wifi join failed after {} attempts: {:?}", delays.len(), e);
+            }
+        } else {
+            return;
+        }
+    }
+}
+
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
@@ -74,6 +120,7 @@ async fn main(spawner: Spawner) {
         .into_buffered_graphics_mode();
     display.init().unwrap();
     display.clear(BinaryColor::Off).unwrap();
+    display.flush().unwrap();
 
     let fw = include_bytes!("../cyw43-firmware/43439A0.bin");
     let clm = include_bytes!("../cyw43-firmware/43439A0_clm.bin");
@@ -141,23 +188,7 @@ async fn main(spawner: Spawner) {
     // blink 3 times in 1 second (333ms)
     blink(&mut control, 3, 333).await;
 
-    if let Err(e) = control
-        .join(SSID, cyw43::JoinOptions::new(PASSWORD.as_bytes()))
-        .await
-    {
-        let mut msg: String<64> = String::new();
-        write!(&mut msg, "{:?}", e).unwrap();
-
-        Text::new(&msg, Point::new(0, 40), style)
-            .draw(&mut display)
-            .unwrap();
-        display.flush().unwrap();
-
-        // Pause for 5 sec so you can read the error message...
-        embassy_time::Timer::after_millis(5000).await;
-
-        panic!("wifi join failed: {:?}", e);
-    }
+    wifi_join_with_retries(&mut control, SSID, PASSWORD, &mut display, style).await;
 
     // Otherwise, success!
     // blink 10 times in 1 second (100ms)
