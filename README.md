@@ -94,3 +94,29 @@ If you see this:
     Error: "Unable to find mounted pico"
 
 Unplug it, hold BOOTSEL, then plug it back in.
+
+Debugging
+---------
+
+You'll want a Raspberry Pi Debug Probe for this for SWD debugging. That way `info!(...)` and `debug!(...)` messages
+will be printable to your workstation.
+
+Wiring is easy. Wire the D part (DEBUG), not U (UART), over from the Probe to the Pico W.
+The Pico WH already has a little JST header sticking out with the big word "DEBUG" next to it.
+Make sure you upgrade its firmware:
+
+    git clone git@github.com:raspberrypi/debugprobe.git
+    cd debugprobe
+    mkdir build
+    cd build
+    cmake ..
+    make
+
+Then you'll see a build/debugprobe.uf2 that you can copy over. You might need to open up the Probe enclosure if it
+has one, then hold down BOOTSEL and boot it up like you would the Pico W, then copy over the debugprobe.uf2 over to
+the fake USB mass storage device.
+
+If you wired the JST up, and powered *both* the Pico W and Probe with USB, then you should be able to connect to it.
+
+The next step is to run `cargo embed` which will flash the debug version of your firmware to your connected Pico W,
+and then you'll start to see debug messages.
