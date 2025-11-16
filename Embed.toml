@@ -1,0 +1,16 @@
+[default.general]
+# halt_after_connect = true
+chip = "rp2040"
+
+[default.rtt]
+enabled = true
+
+# [flashing]
+# enabled = true
+
+# [probe]
+# protocol = "Swd"
+
+# [rtt.up_channels.0]
+# mode = "BlockIfFull"
+# format = "Defmt"

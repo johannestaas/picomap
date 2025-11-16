@@ -4,7 +4,7 @@
 use core::fmt::Write;
 use cyw43::Control;
 use cyw43_pio::{DEFAULT_CLOCK_DIVIDER, PioSpi};
-use defmt::info;
+use defmt::{debug, error, info, warn};
 use embassy_executor::Spawner;
 use embassy_net::DhcpConfig;
 use embassy_net::{self, Config, Runner, Stack, StackResources};
@@ -21,8 +21,8 @@ use embedded_graphics::{
     text::Text,
 };
 use heapless::String;
-use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
 use ssd1306::mode::BufferedGraphicsMode;
+use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
 use static_cell::StaticCell;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -38,22 +38,25 @@ static NET_RUNNER: StaticCell<Runner<cyw43::NetDriver<'static>>> = StaticCell::n
 async fn cyw43_task(
     runner: cyw43::Runner<'static, Output<'static>, PioSpi<'static, PIO0, 0, DMA_CH0>>,
 ) -> ! {
+    debug!("cyw43_task running");
     runner.run().await
 }
 
 #[embassy_executor::task]
 async fn network_task(runner: &'static mut Runner<'static, cyw43::NetDriver<'static>>) -> ! {
+    debug!("network_task running");
     runner.run().await
 }
 
 async fn blink(control: &mut Control<'_>, num_blinks: usize, delay_ms: u64) {
+    info!("blink running: {} with {}", num_blinks, delay_ms);
     let delay = Duration::from_millis(delay_ms);
     for _ in 1..num_blinks {
-        // info!("led on!");
+        debug!("led zero on");
         control.gpio_set(0, true).await;
         Timer::after(delay).await;
 
-        //info!("led off!");
+        debug!("led zero off");
         control.gpio_set(0, false).await;
         Timer::after(delay).await;
     }
@@ -82,6 +85,7 @@ async fn wifi_join_with_retries<'a, IFACE: ssd1306::prelude::WriteOnlyDataComman
             display.clear(BinaryColor::Off).unwrap();
             display.flush().unwrap();
             write!(&mut msg, "E{}: {:?}", attempt + 1, e).unwrap();
+            warn!("wifi error: {}", msg);
 
             Text::new(&msg, Point::new(0, 40), style)
                 .draw(display)
@@ -96,6 +100,7 @@ async fn wifi_join_with_retries<'a, IFACE: ssd1306::prelude::WriteOnlyDataComman
                     .draw(display)
                     .unwrap();
                 display.flush().unwrap();
+                error!("wifi join failed final time");
                 panic!("wifi join failed after {} attempts: {:?}", delays.len(), e);
             }
         } else {
@@ -107,6 +112,7 @@ async fn wifi_join_with_retries<'a, IFACE: ssd1306::prelude::WriteOnlyDataComman
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+    info!("embassy_rp::init");
 
     let sda = p.PIN_4;
     let scl = p.PIN_5;
@@ -118,12 +124,16 @@ async fn main(spawner: Spawner) {
     let interface = I2CDisplayInterface::new(i2c);
     let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
         .into_buffered_graphics_mode();
+    info!("initializing and unwrapping display");
     display.init().unwrap();
     display.clear(BinaryColor::Off).unwrap();
     display.flush().unwrap();
+    info!("display flushed");
 
+    debug!("loading bytes for firmware...");
     let fw = include_bytes!("../cyw43-firmware/43439A0.bin");
     let clm = include_bytes!("../cyw43-firmware/43439A0_clm.bin");
+    debug!("loaded");
 
     // To make flashing faster for development, you may want to flash the firmwares independently
     // at hardcoded addresses, instead of baking them into the program with `include_bytes!`:
@@ -150,15 +160,18 @@ async fn main(spawner: Spawner) {
     let state = STATE.init(cyw43::State::new());
     let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw).await;
     spawner.spawn(cyw43_task(runner)).unwrap();
+    info!("spawned and unwrapped cyw43_task");
 
     control.init(clm).await;
 
     // blink 5 times in 0.5 seconds (100ms) just to show it started
+    debug!("blink 5 times in 0.5 seconds");
     blink(&mut control, 5, 100).await;
 
     let config = Config::dhcpv4(DhcpConfig::default());
 
     let resources = NET_RESOURCES.init(StackResources::<2>::new());
+    debug!("init'd NET_RESOURCES");
     let (stack, runner) = embassy_net::new(
         net_device,
         config,
@@ -168,11 +181,14 @@ async fn main(spawner: Spawner) {
 
     let _stack = NET_STACK.init(stack);
     let runner = NET_RUNNER.init(runner);
+    debug!("initialized stack and runner");
 
     spawner.spawn(network_task(runner)).unwrap();
 
     const SSID: &str = env!("WIFISSID");
     const PASSWORD: &str = env!("WIFIPASS");
+
+    debug!("Got wifissid {} and pass {}", SSID, PASSWORD);
 
     let style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
     let mut out: String<64> = String::new();
@@ -183,11 +199,13 @@ async fn main(spawner: Spawner) {
     Text::new("Connecting...", Point::new(0, 20), style)
         .draw(&mut display)
         .unwrap();
+    debug!("flashing new message to display");
     display.flush().unwrap();
 
     // blink 3 times in 1 second (333ms)
     blink(&mut control, 3, 333).await;
 
+    debug!("Running wifi_join_with_retries");
     wifi_join_with_retries(&mut control, SSID, PASSWORD, &mut display, style).await;
 
     // Otherwise, success!
@@ -200,17 +218,17 @@ async fn main(spawner: Spawner) {
         .unwrap();
     display.flush().unwrap();
 
+    info!("Setting wifi power management to PowerSave");
     control
         .set_power_management(cyw43::PowerManagementMode::PowerSave)
         .await;
 
     let delay = Duration::from_millis(100);
+    info!("Starting blinking infinite loop...");
     loop {
-        info!("led on!");
         control.gpio_set(0, true).await;
         Timer::after(delay).await;
 
-        info!("led off!");
         control.gpio_set(0, false).await;
         Timer::after(delay).await;
     }

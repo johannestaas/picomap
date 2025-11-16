@@ -17,7 +17,7 @@ use std::process::Command;
 
 fn download_proprietary_firmware() {
     let status = Command::new("bash")
-        .arg("download_firmware.sh")
+        .arg("./scripts/download_firmware.sh")
         .status()
         .unwrap();
 

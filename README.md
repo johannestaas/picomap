@@ -16,7 +16,7 @@ connected Raspberry Pico chipsets using `elf2uf2-rs -d`
 You should probably set up [picotool, here](https://github.com/raspberrypi/picotool).
 Follow the instructions and ensure you have appropriate perms (group `dialout` for USB).
 
-Run ./download_firmware.sh to download proprietary cyw43 firmware blobs for the Pico W.
+Run ./scripts/download_firmware.sh to download proprietary cyw43 firmware blobs for the Pico W.
 If it fails, the hashes didn't match (which would be suspicious since I set it to an explicit git commit hash).
 
 Configuration
@@ -66,7 +66,7 @@ You should see something like this:
     warning: unused config key `build.default-target` in `/home/$USER/picomap/.cargo/config.toml`
        Compiling picomap v0.1.0 (/home/$USER/picomap)
         Finished `release` profile [optimized] target(s) in 0.64s
-         Running `/home/$USER/picomap/./flash.sh target/thumbv6m-none-eabi/release/picomap`
+         Running `/home/$USER/picomap/scripts/flash.sh target/thumbv6m-none-eabi/release/picomap`
     Flashing with SSID: "Your SSID Here"
     Found pico uf2 disk /media/$USER/RPI-RP2
     Transfering program to pico
