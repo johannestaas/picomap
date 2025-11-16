@@ -55,6 +55,8 @@ fn load_dotenv() {
 }
 
 fn main() {
+    // Need this or it won't re-run with WiFi password changes
+    println!("cargo:rerun-if-changed=.env");
     download_proprietary_firmware();
     load_dotenv();
     // Put `memory.x` in our output directory and ensure it's
