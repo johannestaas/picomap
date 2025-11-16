@@ -45,7 +45,8 @@ fn load_dotenv() {
 
             if let Some((key, value)) = line.split_once('=') {
                 let key = key.trim();
-                let value = value.trim();
+                let mut value = value.trim();
+                value = value.trim_matches('"').trim_matches('\'');
 
                 println!("cargo:rustc-env={}={}", key, value);
             }
