@@ -171,7 +171,7 @@ async fn main(spawner: Spawner) {
         embassy_time::Instant::now().as_ticks(),
     );
 
-    let _stack = NET_STACK.init(stack);
+    let stack = NET_STACK.init(stack);
     let runner = NET_RUNNER.init(runner);
 
     spawner.spawn(network_task(runner)).unwrap();
@@ -204,6 +204,29 @@ async fn main(spawner: Spawner) {
         .draw(&mut display)
         .unwrap();
     display.flush().unwrap();
+
+    if let Some(cfg) = stack.config_v4() {
+        info!("IPv4 address: {}", cfg.address);
+        info!("Gateway: {}", cfg.gateway);
+        info!("DNS servers: {:?}", cfg.dns_servers);
+
+        display.clear(BinaryColor::Off).unwrap();
+        let mut msg: String<64> = String::new();
+        let mut msg2: String<64> = String::new();
+        write!(&mut msg, "IP: {}", cfg.address).unwrap();
+        if let Some(gw) = cfg.gateway {
+            write!(&mut msg2, "GW: {}", gw).unwrap();
+        } else {
+            write!(&mut msg2, "GW: None").unwrap();
+        }
+        Text::new(&msg, Point::new(0, 10), style)
+            .draw(&mut display)
+            .unwrap();
+        Text::new(&msg2, Point::new(0, 20), style)
+            .draw(&mut display)
+            .unwrap();
+        display.flush().unwrap();
+    }
 
     debug!("Setting wifi power management to PowerSave");
     control
