@@ -54,10 +54,11 @@ async fn main(_spawner: Spawner) {
 
     let bytes = sd.num_bytes().unwrap();
     info!("Card size {} bytes", bytes);
+    let ts = DummyTime;
+    let mut volman = VolumeManager::new(sd, ts);
 
     */
     let ts = DummyTime;
-    // let mut volman = VolumeManager::new(sd, ts);
     let volman = VolumeManager::new(blockdev, ts);
 
     let volume = volman.open_volume(embedded_sdmmc::VolumeIdx(0)).unwrap();
