@@ -48,6 +48,18 @@ SCL -> GP5
 GND -> GND
 VCC -> +3V3
 
+Wiring the Micro SD Card
+------------------------
+
+SD module      ->    Pico W pin
+---------            ----------
+3V3            ->    3V3
+CS             ->    GP17   (Chip Select)
+MOSI           ->    GP19   (SPI0 TX)
+CLK            ->    GP18   (SPI0 SCK)
+MISO           ->    GP16   (SPI0 RX)
+GND            ->    GND
+
 Flashing Your Pico
 ------------------
 
