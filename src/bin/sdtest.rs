@@ -5,11 +5,10 @@ use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::gpio::{Level, Output};
 use embassy_rp::spi;
-use embassy_rp::init;
-use embedded_sdmmc::{SdCard, TimeSource, Timestamp, VolumeManager};
-use {panic_probe as _, defmt_rtt as _};
+use embedded_sdmmc::{TimeSource, Timestamp, VolumeManager};
 
-// use crate::sd_spi::EmbassySpiDevice;
+use picomap::sd_spi::EmbassySpiDevice;
+use { panic_probe as _, defmt_rtt as _ };
 
 struct DummyTime;
 
@@ -28,51 +27,52 @@ impl TimeSource for DummyTime {
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    let p = init(Default::default());
-
+    let p = embassy_rp::init(Default::default());
     info!("SD init test starting...");
 
-    let sck  = p.PIN_18;
+    let sck = p.PIN_18;
     let mosi = p.PIN_19;
     let miso = p.PIN_16;
     let cs_p = p.PIN_17;
 
     let mut cfg = spi::Config::default();
     cfg.frequency = 400_000;
-    let _spi = spi::Spi::new_blocking(
-        p.SPI0,
-        sck,
-        mosi,
-        miso,
-        cfg,
-    );
 
-    let _cs = Output::new(cs_p, Level::High);
-    info!("finished up to here");
-    // let mut spi_dev = EmbassySpiDevice { bus: &spi, cs };
+    let spi_dev = spi::Spi::new_blocking(p.SPI0, sck, mosi, miso, cfg);
 
-    // sdcard_test(&mut spi_dev);
-}
+    let cs = Output::new(cs_p, Level::High);
 
-/*
-fn sdcard_test(dev: &mut EmbassySpiDevice<'_, embassy_rp::peripherals::SPI0>) {
-    let mut delay = embassy_time::Delay;
-    let ts = DummyTime;
+    let blockdev = EmbassySpiDevice::new(spi_dev, cs);
 
-    let mut sd = SdCard::new(dev, &mut delay);
-
+    /*
+    let delay = embassy_time::Delay;
+    let mut sd = SdCard::new(&mut blockdev, &mut delay);
     sd.init().unwrap();
 
-    let num_bytes = sd.num_bytes().unwrap();
-    info!("Card size: {} bytes", num_bytes);
+    info!("SD card initialized!");
 
-    let mut volman = VolumeManager::new(sd, ts);
-    let vol0 = volman.open_volume(embedded_sdmmc::VolumeIdx(0)).unwrap();
+    let bytes = sd.num_bytes().unwrap();
+    info!("Card size {} bytes", bytes);
 
+    */
+    let ts = DummyTime;
+    // let mut volman = VolumeManager::new(sd, ts);
+    let volman = VolumeManager::new(blockdev, ts);
+
+    let volume = volman.open_volume(embedded_sdmmc::VolumeIdx(0)).unwrap();
     info!("Volume 0 opened!");
 
-    let root = vol0.open_root_dir().unwrap();
+    let root = volume.open_root_dir().unwrap();
+    info!("Root directory opened!");
 
-    info!("Root dir OK!");
+    let dir = root;
+    let raw = dir.to_raw_directory();
+
+    volman.iterate_dir(raw, |entry| {
+        if entry.attributes.is_directory() {
+            info!("DIR:  {}", entry.name);
+        } else {
+            info!("FILE: {} ({} bytes)", entry.name, entry.size);
+        }
+    }).unwrap();
 }
-*/
