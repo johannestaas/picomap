@@ -6,7 +6,6 @@
 runner = "./scripts/flash.sh"
 
 [build]
-default-target = "thumbv6m-none-eabi"
 target = "thumbv6m-none-eabi"        # Cortex-M0 and Cortex-M0+
 
 [env]
