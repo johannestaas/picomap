@@ -39,6 +39,22 @@ fn crc7(bytes: &[u8]) -> u8 {
     crc & 0x7F
 }
 
+pub fn sfn_to_str(sfn: &embedded_sdmmc::ShortFileName) -> heapless::String<13> {
+    let mut out: heapless::String<13> = heapless::String::new();
+
+    let base = core::str::from_utf8(sfn.base_name()).unwrap();
+    let ext = core::str::from_utf8(sfn.extension()).unwrap();
+
+    out.push_str(base).unwrap();
+
+    if !ext.is_empty() {
+        out.push('.').unwrap();
+        out.push_str(ext).unwrap();
+    }
+
+    out
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum SdSpiError {
     Spi,

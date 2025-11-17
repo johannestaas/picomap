@@ -7,7 +7,7 @@ use embassy_rp::gpio::{Level, Output};
 use embassy_rp::spi;
 use embedded_sdmmc::{TimeSource, Timestamp, VolumeManager};
 
-use picomap::sd_spi::EmbassySpiDevice;
+use picomap::sd_spi::{EmbassySpiDevice, sfn_to_str};
 use {defmt_rtt as _, panic_probe as _};
 
 struct DummyTime;
@@ -45,19 +45,6 @@ async fn main(_spawner: Spawner) {
     let blockdev = EmbassySpiDevice::new(spi_dev, cs);
     blockdev.init().unwrap();
 
-    /*
-    let delay = embassy_time::Delay;
-    let mut sd = SdCard::new(&mut blockdev, &mut delay);
-    sd.init().unwrap();
-
-    info!("SD card initialized!");
-
-    let bytes = sd.num_bytes().unwrap();
-    info!("Card size {} bytes", bytes);
-    let ts = DummyTime;
-    let mut volman = VolumeManager::new(sd, ts);
-
-    */
     let ts = DummyTime;
     let volman = VolumeManager::new(blockdev, ts);
 
@@ -67,16 +54,37 @@ async fn main(_spawner: Spawner) {
     let root = volume.open_root_dir().unwrap();
     info!("Root directory opened!");
 
-    let dir = root;
-    let raw = dir.to_raw_directory();
+    let raw = root.to_raw_directory();
+    let mut filenames: heapless::Vec<heapless::String<13>, 64> = heapless::Vec::new();
 
-    volman
-        .iterate_dir(raw, |entry| {
-            if entry.attributes.is_directory() {
-                info!("DIR:  {}", entry.name);
-            } else {
-                info!("FILE: {} ({} bytes)", entry.name, entry.size);
+    volman.iterate_dir(raw, |entry| {
+        if entry.attributes.is_directory() {
+            info!("saw dir: {}", sfn_to_str(&entry.name));
+        } else {
+            let s: heapless::String<13> = sfn_to_str(&entry.name);
+            filenames.push(s).ok();
+        }
+    }).unwrap();
+
+    for fname in &filenames {
+        info!("Reading file: {}", fname);
+
+        let handle = volman
+            .open_file_in_dir(raw, fname.as_str(), embedded_sdmmc::Mode::ReadOnly)
+            .unwrap();
+
+        let mut buf = [0u8; 512];
+        loop {
+            let n = volman.read(handle, &mut buf).unwrap();
+            if n == 0 {
+                break; // EOF
             }
-        })
-        .unwrap();
+
+            let txt = core::str::from_utf8(&buf[..n]).unwrap_or("<binary>");
+            info!("--> {}", txt);
+        }
+
+        volman.close_file(handle).unwrap();
+    }
+
 }
