@@ -8,7 +8,7 @@ use embassy_rp::spi;
 use embedded_sdmmc::{TimeSource, Timestamp, VolumeManager};
 
 use picomap::sd_spi::EmbassySpiDevice;
-use { panic_probe as _, defmt_rtt as _ };
+use {defmt_rtt as _, panic_probe as _};
 
 struct DummyTime;
 
@@ -36,13 +36,14 @@ async fn main(_spawner: Spawner) {
     let cs_p = p.PIN_17;
 
     let mut cfg = spi::Config::default();
-    cfg.frequency = 400_000;
+    cfg.frequency = 100_000;
 
     let spi_dev = spi::Spi::new_blocking(p.SPI0, sck, mosi, miso, cfg);
 
     let cs = Output::new(cs_p, Level::High);
 
     let blockdev = EmbassySpiDevice::new(spi_dev, cs);
+    blockdev.init().unwrap();
 
     /*
     let delay = embassy_time::Delay;
@@ -68,11 +69,13 @@ async fn main(_spawner: Spawner) {
     let dir = root;
     let raw = dir.to_raw_directory();
 
-    volman.iterate_dir(raw, |entry| {
-        if entry.attributes.is_directory() {
-            info!("DIR:  {}", entry.name);
-        } else {
-            info!("FILE: {} ({} bytes)", entry.name, entry.size);
-        }
-    }).unwrap();
+    volman
+        .iterate_dir(raw, |entry| {
+            if entry.attributes.is_directory() {
+                info!("DIR:  {}", entry.name);
+            } else {
+                info!("FILE: {} ({} bytes)", entry.name, entry.size);
+            }
+        })
+        .unwrap();
 }
