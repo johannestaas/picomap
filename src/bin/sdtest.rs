@@ -4,7 +4,6 @@
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::gpio::{Level, Output};
-use embassy_rp::spi;
 use embedded_sdmmc::VolumeManager;
 
 use picomap::sd_spi::{DummyTime, EmbassySpiDevice};
@@ -21,10 +20,10 @@ async fn main(_spawner: Spawner) {
     let miso = p.PIN_16;
     let cs_p = p.PIN_17;
 
-    let mut cfg = spi::Config::default();
+    let mut cfg = embassy_rp::spi::Config::default();
     cfg.frequency = 100_000;
 
-    let spi_dev = spi::Spi::new_blocking(p.SPI0, sck, mosi, miso, cfg);
+    let spi_dev = embassy_rp::spi::Spi::new_blocking(p.SPI0, sck, mosi, miso, cfg);
 
     let cs = Output::new(cs_p, Level::High);
 
