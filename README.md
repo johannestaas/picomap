@@ -132,3 +132,9 @@ If you wired the JST up, and powered *both* the Pico W and Probe with USB, then 
 
 The next step is to run `cargo embed` which will flash the debug version of your firmware to your connected Pico W,
 and then you'll start to see debug messages.
+
+You Don't Know How Happy This Made Me
+-------------------------------------
+
+    $ cat /media/$USER/sdcard/OUTPUT.TXT
+    please work PLEASE fiNAlTest!
