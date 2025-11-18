@@ -52,7 +52,7 @@ pub struct DummyTime;
 impl TimeSource for DummyTime {
     fn get_timestamp(&self) -> Timestamp {
         Timestamp {
-            year_since_1970: 54,
+            year_since_1970: 0,
             zero_indexed_month: 0,
             zero_indexed_day: 0,
             hours: 0,
