@@ -2,4 +2,5 @@
 
 use defmt::*;
 
+pub mod fat_utils;
 pub mod sd_spi;
